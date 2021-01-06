@@ -5,27 +5,8 @@ APP_STACK_NAME="dayilar-prj"
 CFN_TEMPLATE="~/prj_dayilar/dev-docker-swarm-infrastructure-cfn-template.yml"
 export ANSIBLE_PRIVATE_KEY_FILE="~/.ssh/${CFN_KEYPAIR}"
 export ANSIBLE_HOST_KEY_CHECKING="False"
+GRAND_MASTER_PUBLIC_IP="35.175.219.64"
 
-aws ec2 create-key-pair --region ${AWS_REGION} --key-name ${CFN_KEYPAIR} --query KeyMaterial --output text > ${CFN_KEYPAIR}
-sudo chmod 400 ${CFN_KEYPAIR}
-mkdir -p ~/.ssh
-mv ${CFN_KEYPAIR} ~/.ssh/${CFN_KEYPAIR}
-
-echo "Creating QA Automation Infrastructure for Dev Environment with Cloudfomation"
-aws cloudformation create-stack --region ${AWS_REGION} --stack-name ${APP_STACK_NAME} --capabilities CAPABILITY_IAM --template-body file://${CFN_TEMPLATE} --parameters ParameterKey=KeyPairName,ParameterValue="~/.ssh/${CFN_KEYPAIR}"
-while :
-do
-    echo "Docker Grand Master is not UP and running yet. Will try to reach again after 10 seconds..."
-    sleep 10
-    ip=$(aws ec2 describe-instances --region ${AWS_REGION} --filters Name=tag-value,Values=grand-master Name=tag-value,Values=${APP_STACK_NAME} --query Reservations[*].Instances[*].[PublicIpAddress] --output text)
-    echo $ip
-    if [ ${#ip} -ge 7 ]
-    then
-        echo "Docker Grand Master Public Ip Address Found: $ip"
-        export GRAND_MASTER_PUBLIC_IP="$ip"
-        break
-    fi
-done
 while :
 do
     echo "Could not connect to Docker Grand Master with SSH, I will try again in 10 seconds"
